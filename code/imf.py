@@ -88,8 +88,7 @@ def get_massfunc(massfunc):
 
 
 #Functions to sample from IMFs.
-def inverse_imf(prob, nbins=10000, mmin=0.01, mmax=100, massfunc='salpeter',
-        **kwargs):
+def inverse_imf(prob, nbins=10000, massfunc='salpeter', **kwargs):
     """
     Invert a given imf (really the cdf of that imf) and return the mass at which
     the probability that a star is below that mass is prob. I.e. 
@@ -97,6 +96,8 @@ def inverse_imf(prob, nbins=10000, mmin=0.01, mmax=100, massfunc='salpeter',
 
     massfunc can be a string from mf_dict or a user-defined custom function.
     """
+    mmin = get_massfunc(massfunc).mmin
+    mmax = get_massfunc(massfunc).mmax
     masses = np.logspace(np.log10(mmin), np.log10(mmax), nbins)
     #Construct normalized cdf from the integral form of the mass function
     mf_integ = get_massfunc(massfunc)(masses, integ_form=True, **kwargs)
@@ -104,6 +105,12 @@ def inverse_imf(prob, nbins=10000, mmin=0.01, mmax=100, massfunc='salpeter',
     #Return the mass corresponding to given probability, interpolated between
     #the masses grid given.
     return np.interp(prob, cdf, masses)
+
+def mc_sample(n, massfunc='salpeter', **kwargs):
+    """
+    """
+
+    return masses
 
 def sample_imf(tot, tot_is_number=False, massfunc='salpeter', verbose=False,
         silent=False, mtol=0.5, **kwargs):
