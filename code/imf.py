@@ -15,6 +15,10 @@ class IMF(object):
         "Returns differential form of the function"
         return self(m, integ_form=False, **kwargs)
 
+    def dndlogm(self, m, **kwargs):
+        "Returns the dn/d(logm) form, to compare to log-binned samples"
+        return m * self(m, integ_form=False, **kwargs)
+
     def n_of_m(self, m, **kwargs):
         "Return the integral form of the function"
         return self(m, integ_form=True, **kwargs)
