@@ -106,9 +106,43 @@ def inverse_imf(prob, nbins=10000, massfunc='salpeter', **kwargs):
     #the masses grid given.
     return np.interp(prob, cdf, masses)
 
+#Approximate acceptance fractions for mc_sample Monte Carlo sampling of IMFs.
+#These fractions are experimentally determined and slightly underestimated to 
+#reduce the likelihood of extra rounds of sampling in mc_sample.
+#More precisely, the fractions are: salp - 0.0462
+mc_frac = {'salpeter':0.04}
+
 def mc_sample(n, massfunc='salpeter', **kwargs):
     """
+    Sample an IMF using Monte Carlo rejection sampling, with a log-uniform
+    proposal distribution. Return n masses.
+    Adapted from http://python4mpia.github.io/fitting_data/
     """
+    mf = get_massfunc(massfunc)
+    logmmin = np.log10(mf.mmin)
+    logmmax = np.log10(mf.mmax)
+    masses = [] 
+    #Begin loop to build up exactly n masses, hopefully running once in most
+    #cases.
+    while len(masses) < n: 
+        #Guess number of trials needed to have n accepted samples.
+        n_try =  np.ceil((1.*n - len(masses)) / mc_frac[massfunc])
+        #Draw proposals from log-uniform distribution, increases efficiency.
+        m = 10. ** ((logmmax - logmmin) * np.random.random(n_try) + logmmin)
+        
+        #SHOULD I USE THE INTEGRAL FORM OF THE MF HERE? I THINK NOT, BUT
+        #http://python4mpia.github.io/fitting_data/ DOES?
+        like = mf(m)
+        maxlike = mf(mostcommonmass[massfunc])
+
+        #Accept m randomly, and give to masses 
+        u = maxlike * np.random.random(n_try)
+        masses = np.concatenate([masses, m[u < like]])
+        # print len(masses)
+        if len(masses) > n:
+            #Keep first n samples.
+            masses = masses[:n]
+        # elif len(masses) < n: print "Need more samples! Relooping"
 
     return masses
 
