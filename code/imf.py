@@ -69,9 +69,9 @@ class Larson(IMF):
 
 
 
-mf_dict = {'salpeter':Salp()}
+mf_dict = {'salpeter':Salp(), 'larson':Larson()}
 reverse_mf_dict = {i:j for j,i in mf_dict.iteritems()}
-mostcommonmass = {'salpeter':Salp().mmin}
+mostcommonmass = {'salpeter':Salp().mmin, 'larson':Larson().mmin}
 
 def get_massfunc(massfunc):
     """
@@ -92,9 +92,9 @@ def get_massfunc(massfunc):
 
 
 #Functions to sample from IMFs.
-def inverse_imf(prob, nbins=10000, massfunc='salpeter', **kwargs):
+def inverse_sample(n, nbins=10000, massfunc='salpeter', **kwargs):
     """
-    Invert a given imf (really the cdf of that imf) and return the mass at which
+    Invert a given imf (really the cdf of that imf) and return n masses where
     the probability that a star is below that mass is prob. I.e. 
     prob(mass) = P(mmin < m < mass), where m is the random variable.
 
@@ -102,6 +102,7 @@ def inverse_imf(prob, nbins=10000, massfunc='salpeter', **kwargs):
     """
     mmin = get_massfunc(massfunc).mmin
     mmax = get_massfunc(massfunc).mmax
+    prob = np.random.random(n)
     masses = np.logspace(np.log10(mmin), np.log10(mmax), nbins)
     #Construct normalized cdf from the integral form of the mass function
     mf_integ = get_massfunc(massfunc)(masses, integ_form=True, **kwargs)
@@ -114,7 +115,8 @@ def inverse_imf(prob, nbins=10000, massfunc='salpeter', **kwargs):
 #These fractions are experimentally determined and slightly underestimated to 
 #reduce the likelihood of extra rounds of sampling in mc_sample.
 #More precisely, the fractions are: salp - 0.0462
-mc_frac = {'salpeter':0.04}
+mc_frac = {'salpeter':0.04, 'larson':0.31}
+
 
 def mc_sample(n, massfunc='salpeter', **kwargs):
     """
@@ -131,13 +133,20 @@ def mc_sample(n, massfunc='salpeter', **kwargs):
     while len(masses) < n: 
         #Guess number of trials needed to have n accepted samples.
         n_try =  np.ceil((1.*n - len(masses)) / mc_frac[massfunc])
+        # print n, n_try
         #Draw proposals from log-uniform distribution, increases efficiency.
         m = 10. ** ((logmmax - logmmin) * np.random.random(n_try) + logmmin)
         
         #SHOULD I USE THE INTEGRAL FORM OF THE MF HERE? I THINK NOT, BUT
         #http://python4mpia.github.io/fitting_data/ DOES?
-        like = mf(m)
-        maxlike = mf(mostcommonmass[massfunc])
+        #################################################################
+        #   ANSWER: This is the log form (dn/dlogm), which looks the same as
+        #   the integral form for a Salpeter IMF. Since our proposals are 
+        #   log-uniform, we must use the log form of the PDF to sample the
+        #   true underlying PDF. BOOM
+        ################################################################
+        like = mf.dndlogm(m) 
+        maxlike = mf.dndlogm(mostcommonmass[massfunc])
 
         #Accept m randomly, and give to masses 
         u = maxlike * np.random.random(n_try)
@@ -146,31 +155,34 @@ def mc_sample(n, massfunc='salpeter', **kwargs):
         if len(masses) > n:
             #Keep first n samples.
             masses = masses[:n]
-        # elif len(masses) < n: print "Need more samples! Relooping"
+        elif len(masses) < n: print "Need more samples! Relooping"
 
     return masses
 
-def sample_imf(tot, tot_is_number=False, massfunc='salpeter', verbose=False,
-        silent=False, mtol=0.5, **kwargs):
+sample_dict = {'mc':mc_sample, 'inverse':inverse_sample}
+
+def sample_imf(tot, tot_is_number=False, massfunc='salpeter',
+        samplefunc='inverse', verbose=False, silent=False,
+        mtol=0.5, **kwargs):
     """
     Stochastically sample an IMF to a total mass of mtot. 
     
     mtol is the tolerance between mtot and the final mass of the cluster.
     """
     
+    sample = sample_dict[samplefunc]
+
     if tot_is_number:
         ntot = tot
-        masses = inverse_imf(np.random.random(ntot), massfunc=massfunc,
-                **kwargs)
+        masses = sample(ntot, massfunc=massfunc, **kwargs)
         mtot = masses.sum()
-        if verbose: print "Sampled %i stars. Total mass is %g solar masses." % (ntot, massfunc, mtot)
+        if verbose: print "Sampled %i stars. Total mass is %g solar masses." % (ntot, mtot)
     else:
         #Guess the number of stars needed using the most common mass of the given
         #IMF 
         mtot = tot
-        ntot = mtot / mostcommonmass[massfunc]
-        masses = inverse_imf(np.random.random(ntot), massfunc=massfunc,
-                **kwargs)
+        ntot = np.ceil(mtot / mostcommonmass[massfunc])
+        masses = sample(ntot, massfunc=massfunc, **kwargs)
         #Sum the sampled masses and check if the sum is within mtol from mtot
         msum = masses.sum()
         if verbose: print "Sampled %i stars. Total mass is %g solar masses." % (ntot, msum)
@@ -190,8 +202,7 @@ def sample_imf(tot, tot_is_number=False, massfunc='salpeter', verbose=False,
                 #Add on as many samples as needed to reach the requested total
                 #mass mtot.
                 nnew = np.ceil((mtot - msum) / mostcommonmass[massfunc])
-                newmasses = inverse_imf(np.random.random(nnew),
-                        massfunc=massfunc, **kwargs)
+                newmasses = sample(nnew, massfunc=massfunc, **kwargs)
                 masses = np.concatenate([masses, newmasses])
                 msum = masses.sum()
                 if verbose:  print "Sampled %i new stars. Total mass is %g solar masses" % (nnew, msum)
@@ -208,4 +219,4 @@ def sample_imf(tot, tot_is_number=False, massfunc='salpeter', verbose=False,
 
             if not silent: print "Total mass of %i stars is %g solar masses (%g requested)" % (len(masses), msum, mtot)
 
-        return masses
+    return masses
