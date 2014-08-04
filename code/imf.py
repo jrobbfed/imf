@@ -220,3 +220,50 @@ def sample_imf(tot, tot_is_number=False, massfunc='salpeter',
             if not silent: print "Total mass of %i stars is %g solar masses (%g requested)" % (len(masses), msum, mtot)
 
     return masses
+
+def getML(m, iso='girardi02', isofolder='/Users/jesse/imf/iso/',
+        Mcol=None, Lcol=None, Mlog=False, Llog=True):
+    """
+    Interpolate the specified isochrone table, computing the corresponding
+    luminosities for the input masses. If a mass if outside the range of the
+    isochrone, return L=0 for that mass. Stars below the mass range are not
+    covered by the isochrone, while stars above the mass range should be
+    stellar remnants (thus L=0) by the age of the isochrone. Return the total
+    M/L ratio for the population.
+
+    All parameters past iso need only be changed if the user is specifying
+    an isochrone table not included in isofolder.
+
+    Included isochrones:
+    girardi02 - Used by Hernandez et al (2012).
+        Age = 10.5 Gyr
+        [Fe/H] = -3
+    
+    bressan12 - Newest version.
+        Age = 10.5 Gyr
+        [Fe/H] = -3
+
+        
+    """
+    nheadlines = {'girardi02':10, 'bressan12':12} #Lines before column names
+    if iso in nheadlines:
+        path = isofolder + iso + '.dat'
+        isotable = np.genfromtxt(path, skip_header=nheadlines[iso], names=True)
+        M_iso = isotable['M_ini']
+        L_iso = 10. ** isotable['logLLo']
+
+    else:
+        isotable = np.genfromtxt(iso)
+        if Mlog:
+            M_iso = 10. ** isotable[:,Mcol]
+        else:
+            M_iso = isotable[:,Mcol]
+        if Llog:
+            L_iso = 10. ** isotable[:,Lcol]
+        else:
+            L_iso = isotable[:,Lcol]
+    
+    L = np.interp(m, M_iso, L_iso, left=0., right=0.)
+    return np.sum(m)/np.sum(L)
+
+
