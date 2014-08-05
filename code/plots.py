@@ -23,8 +23,10 @@ def MtoL(plotfile='MtoL.pdf', niters=2000, iso='girardi02', massfunc='larson',
         for j in range(niters):
             m = imf.sample_imf(mtot, massfunc=massfunc, samplefunc=samplefunc)
             MLnew = imf.getML(m, iso=iso, mag=True)
-            # print MLnew
             ML = np.concatenate([ML, [MLnew]])
+            if (j+1) % 10 == 0:
+                print "Iteration %i out of %i for %e solar masses." % (j+1,
+                niters, total_masses[i])
         ax.hist(ML, bins=bins, histtype='step', label=str(total_masses[i]) + r' M$_\odot$')
            
     ax.set_xlabel(xlabel)
