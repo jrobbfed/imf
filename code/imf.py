@@ -222,7 +222,7 @@ def sample_imf(tot, tot_is_number=False, massfunc='salpeter',
     return masses
 
 def getML(m, iso='girardi02', isofolder='/Users/jesse/imf/iso/',
-        Mcol=None, Lcol=None, Mlog=False, Llog=True):
+        Mcol=None, Lcol=None, Mlog=False, Llog=True, mag=False, magsun=4.83):
     """
     Interpolate the specified isochrone table, computing the corresponding
     luminosities for the input masses. If a mass if outside the range of the
@@ -232,7 +232,10 @@ def getML(m, iso='girardi02', isofolder='/Users/jesse/imf/iso/',
     M/L ratio for the population.
 
     All parameters past iso need only be changed if the user is specifying
-    an isochrone table not included in isofolder.
+    an isochrone table not included in isofolder, or if user specifies other
+    columns in isochrone, i.e. mag=True means that the luminosity column is
+    interpreted as an absolute magnitude, with magsun specified for the desired
+    photometric band (Default V).
 
     Included isochrones:
     girardi02 - Used by Hernandez et al (2012).
@@ -250,7 +253,10 @@ def getML(m, iso='girardi02', isofolder='/Users/jesse/imf/iso/',
         path = isofolder + iso + '.dat'
         isotable = np.genfromtxt(path, skip_header=nheadlines[iso], names=True)
         M_iso = isotable['M_ini']
-        L_iso = 10. ** isotable['logLLo']
+        if mag:
+            L_iso = 10. ** ((magsun - isotable['V']) / 2.5)
+        else:
+            L_iso = 10. ** isotable['logLLo']
 
     else:
         isotable = np.genfromtxt(iso)
@@ -258,8 +264,12 @@ def getML(m, iso='girardi02', isofolder='/Users/jesse/imf/iso/',
             M_iso = 10. ** isotable[:,Mcol]
         else:
             M_iso = isotable[:,Mcol]
-        if Llog:
+        if mag:
+            L_iso = 10. ** ((magsun - isotable[:,Lcol]) / 2.5)
+
+        elif Llog:
             L_iso = 10. ** isotable[:,Lcol]
+
         else:
             L_iso = isotable[:,Lcol]
     
