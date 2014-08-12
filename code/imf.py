@@ -65,7 +65,49 @@ class Larson(IMF):
         if integ_form:
             pass
         else:
-            return (1 + m / self.ms) ** (self.alpha) / m
+            return (1 + m / self.ms) ** (self.alpha) / ma
+
+class Chabrier(IMF):
+    def __init__(self, ):
+        """
+        """
+
+    def __call__(self, m, integ_form=False):
+        if integ_form:
+            pass
+        else:
+            return 
+
+class Kroupa(IMF):
+    def __init__(self, mmin=0.03, mmax=120.):
+        """
+        Create a Kroupa (2001) IMF, in linear solar mass units, with default
+        lower/upper mass limits of 0.03/120 solar masses. The precise form of
+        the IMF is defined in the __call__ parameters. 
+        """
+        self.mmin = mmin
+        self.mmax = mmax
+    def __call__(self, m, a1=0.3, a2=1.3, a3=2.3, b1=0.08, b2=0.5,
+            integ_form=False):
+        """
+        a parameters are the three power-law slopes of the Kroupa IMF
+        b parameters are the breaks in the IMF in solar masses
+        """
+        binv = ((b1**(-(p1-1)) - self.mmin**(-(p1-1)))/(1-p1) +
+                (b2**(-(p2-1)) - b1**(-(p2-1))) * (b1**(p2-p1))/(1-p2) +
+                (- b2**(-(p3-1))) * (b1**(p2-p1)) * (b2**(p3-p2))/(1-p3))
+        b = 1./binv
+        c = b * b1**(p2-p1)
+        d = c * b2**(p3-p2)
+
+        zeta = (b*(m**(-(p1))) * (m<b1) +
+                c*(m**(-(p2))) * (m>=b1) * (m<b2) +
+                d*(m**(-(p3))) * (m>=b2))
+
+        if integ_form:
+            return zeta * m
+        else:
+            return zeta
 
 
 
