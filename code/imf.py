@@ -32,7 +32,7 @@ class IMF(object):
 ###SUBCLASSES OF IMF####
 class Salp(IMF):
 
-    def __init__(self, alpha=-2.35, mmin=0.01, mmax=100):
+    def __init__(self, alpha=-2.35, mmin=0.01, mmax=100, **kwargs):
         """
         Create a Salpeter IMF, using linear solar mass units,
         with a default slope of alpha=-2.35,
@@ -65,7 +65,7 @@ class Larson(IMF):
         if integ_form:
             pass
         else:
-            return (1 + m / self.ms) ** (self.alpha) / ma
+            return (1 + m / self.ms) ** (self.alpha) / m
 
 class Chabrier(IMF):
     def __init__(self, ):
@@ -87,7 +87,7 @@ class Kroupa(IMF):
         """
         self.mmin = mmin
         self.mmax = mmax
-    def __call__(self, m, a1=0.3, a2=1.3, a3=2.3, b1=0.08, b2=0.5,
+    def __call__(self, m, p1=0.3, p2=1.3, p3=2.3, b1=0.08, b2=0.5,
             integ_form=False):
         """
         a parameters are the three power-law slopes of the Kroupa IMF
@@ -111,9 +111,10 @@ class Kroupa(IMF):
 
 
 
-mf_dict = {'salpeter':Salp(), 'larson':Larson()}
+mf_dict = {'salpeter':Salp(), 'larson':Larson(), 'kroupa':Kroupa()}
 reverse_mf_dict = {i:j for j,i in mf_dict.iteritems()}
-mostcommonmass = {'salpeter':Salp().mmin, 'larson':Larson().mmin}
+mostcommonmass = {'salpeter':Salp().mmin, 'larson':Larson().mmin,
+'kroupa':max([0.08, Kroupa().mmin])}
 
 def get_massfunc(massfunc):
     """
@@ -205,14 +206,18 @@ sample_dict = {'mc':mc_sample, 'inverse':inverse_sample}
 
 def sample_imf(tot, tot_is_number=False, massfunc='salpeter',
         samplefunc='inverse', verbose=False, silent=False,
-        mtol=0.5, **kwargs):
+        mtol=0.5, mcm=0.01, **kwargs):
     """
     Stochastically sample an IMF to a total mass of mtot. 
     
-    mtol is the tolerance between mtot and the final mass of the cluster.
+    mtol is the tolerance between mtot and the final mass of the cluster.a
+    if user defined massfunc, specify mcm (most common mass). Set to 0.01 so 
+    that if not specified, the sample_imf still works, just not optimized.
     """
     
     sample = sample_dict[samplefunc]
+    if type(massfunc) is str:
+        mcm = mostcommonmass[massfunc]
 
     if tot_is_number:
         ntot = tot
@@ -223,7 +228,7 @@ def sample_imf(tot, tot_is_number=False, massfunc='salpeter',
         #Guess the number of stars needed using the most common mass of the given
         #IMF 
         mtot = tot
-        ntot = np.ceil(mtot / mostcommonmass[massfunc])
+        ntot = np.ceil(mtot / mcm)
         masses = sample(ntot, massfunc=massfunc, **kwargs)
         #Sum the sampled masses and check if the sum is within mtol from mtot
         msum = masses.sum()
@@ -243,7 +248,7 @@ def sample_imf(tot, tot_is_number=False, massfunc='salpeter',
             while msum < mtot - mtol:
                 #Add on as many samples as needed to reach the requested total
                 #mass mtot.
-                nnew = np.ceil((mtot - msum) / mostcommonmass[massfunc])
+                nnew = np.ceil((mtot - msum) / mcm)
                 newmasses = sample(nnew, massfunc=massfunc, **kwargs)
                 masses = np.concatenate([masses, newmasses])
                 msum = masses.sum()
