@@ -131,7 +131,7 @@ def spindex(n, disttype='gauss', distpars=[-1.4, 0.96]):
 def SNR_calc(L, p, width, spindex, d=None, l=None, b=None, DM=None, 
         tobs=None, G=None, beta=None, npol=None,
         tsamp=None, Tsys=None, f=None,
-        deltaf=None, bw_chan=None, ref_freq=1400., **kwargs):
+        deltaf=None, bw_chan=None, ref_freq=1400., SNR=None, **kwargs):
     """
     L: pseudoluminosity defined at ref_freq [mJy kpc^2]
   
@@ -145,6 +145,7 @@ def SNR_calc(L, p, width, spindex, d=None, l=None, b=None, DM=None,
     deltaf: bandwidth [MHz]
     bw_chan: bandwith of single channel [MHz]
     ref_freq: frequency of pseudoluminosity L [MHz]
+    SNR: signal-to-noise, if specified return Snu
     """
 
     Snu = L * ((f / ref_freq) ** spindex) / (d ** 2.)
@@ -249,7 +250,7 @@ def obs_UFD(L, p, width, spindex, tobs=None, det='ALFA', UFD='Com', **kwargs):
 # def genbeta(p):
 detpars = {'ALFA':{'beta':1.1, 'G':8.5, 'tsamp':0.064, 'Tsys':25., 'f':1374.,
 'deltaf':300., 'bw_chan':0.3, 'npol':2., 'fwhm':3.6}, 'PUPPI_327':{'beta':1.3,
-'G':11., 'tsamp':0.08192, 'Tsys':111, 'f':327., 'deltaf':100, 'bw_chan':0.024,
+'G':11., 'tsamp':0.08192, 'Tsys':90, 'f':327., 'deltaf':100, 'bw_chan':0.01,
 'npol':2., 'fwhm':14.5}}
 #http://www.naic.edu/puppi-observing/
 #down to "Typical Setups - Fast4K"
