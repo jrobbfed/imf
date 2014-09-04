@@ -101,3 +101,15 @@ def minflux_period(tobs=[12.*3600, 24.*3600., 48.*3600.], spindex=-1.6,
         axHistx.set_title(UFD[iax])
     # ax.set_title(r'12 hour $9\sigma$ sensitivity towards Coma of 327 MHz receiver with PUPPI backend')
     plt.savefig(plotfile)
+
+def pulsarmap(plotfile='knownmsps.pdf', pulsarfile='pulsars.dat'):
+    """
+    Plot the coordinates of all known pulsars, both radio and gamma ray, with UFDs
+    marked.
+
+    psrcat.dat is a table from the ATNF pulsar database, and this code assumes
+    this format.
+    """
+    from astropy.io import ascii
+    a = ascii.read('psrcat.dat', format='basic', fill_values=[('','0'), ('*','0')])
+    
