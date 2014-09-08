@@ -102,14 +102,37 @@ def minflux_period(tobs=[12.*3600, 24.*3600., 48.*3600.], spindex=-1.6,
     # ax.set_title(r'12 hour $9\sigma$ sensitivity towards Coma of 327 MHz receiver with PUPPI backend')
     plt.savefig(plotfile)
 
-def pulsarmap(plotfile='knownmsps.pdf', pulsarfile='pulsars.dat'):
+def pulsarmap(plotfile='knownmsps.pdf', pulsarfile='psrcat.dat'):
     """
-    Plot the coordinates of all known pulsars, both radio and gamma ray, with UFDs
+    Plot the galactic coordinates of all known pulsars, both radio and gamma ray, with UFDs
     marked.
 
     psrcat.dat is a table from the ATNF pulsar database, and this code assumes
     this format.
     """
+    import matplotlib.cm as cm
     from astropy.io import ascii
-    a = ascii.read('psrcat.dat', format='basic', fill_values=[('','0'), ('*','0')])
+    import pulsar
+    a = ascii.read(pulsarfile, format='basic', fill_values=[('','0'), ('*','0')])
+    Gl, Gb, dist = a['Gl'].data, a['Gb'].data, a['DIST'].data
+    ii_msp = np.where(a['P0'].data < 0.030)
+    UFD = pulsar.UFD_lb
+    UFDdist = pulsar.UFD_d.values()
+    print UFDdist
+    UFDlb = UFD.values()
+    UFDnames = UFD.keys()
+    UFDlb = np.array(UFDlb).reshape([len(UFDlb), 2])
     
+    
+
+    f, ax = plt.subplots(1)
+    ax.scatter(UFDlb[:,0], UFDlb[:,1], s=20, marker='o', c=np.log10(UFDdist),
+            cmap=plt.get_cmap('grey'))
+    im = ax.scatter(Gl, Gb, marker='+', s=20., c=np.log10(dist))
+    
+    f.colorbar(im, ax=ax, label='log(distance [kpc])')
+
+    ax.set_xlabel('Galactic Longitude [deg]')
+    ax.set_ylabel('Galactic Latitude [deg]')
+
+    plt.savefig(plotfile)
